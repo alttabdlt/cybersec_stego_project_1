@@ -1,0 +1,8 @@
+streamlit
+Pillow
+matplotlib
+numpy
+pydub
+opencv-python
+
+Also, install ffmpeg from https://github.com/BtbN/FFmpeg-Builds/releases and add it to PATH
