@@ -26,40 +26,45 @@ def binary_to_file(binary, file_type):
         raise ValueError(f"Error converting binary to file: {str(e)}")
 
 def encode_lsb(data, payload, num_lsb):
-    binary_payload = payload + '1111111111111110'
-    required_bits = len(binary_payload)
-    available_bits = data.size * num_lsb
+    binary_payload = payload + '1111111111111110'  # End marker
+    payload_bits = np.array([int(bit) for bit in binary_payload], dtype=np.uint8)
     
-    if required_bits > available_bits:
-        raise ValueError(f"Payload too large. Needs {required_bits} bits, but only {available_bits} available.")
+    data_flat = data.flatten()
+    bit_index = 0
+    for i in range(data_flat.size):
+        if bit_index < len(payload_bits):
+            bits_to_encode = payload_bits[bit_index:bit_index+num_lsb]
+            data_flat[i] = (data_flat[i] & ~((1 << num_lsb) - 1)) | int(''.join(map(str, bits_to_encode)), 2)
+            bit_index += num_lsb
+        else:
+            break
     
-    binary_payload += '0' * (available_bits - required_bits)
-    payload_bits = np.array([int(bit) for bit in binary_payload])
-    
-    mask = 2**num_lsb - 1
-    encoded = ((data & ~mask) | (payload_bits[:data.size].reshape(data.shape) & mask)).astype(data.dtype)
-    return encoded
+    return data_flat.reshape(data.shape)
 
 def decode_lsb(data, num_lsb):
-    mask = 2**num_lsb - 1
-    binary_payload = ''.join(format(byte & mask, f'0{num_lsb}b') for byte in data.flatten())
-    payload_end = binary_payload.find('1111111111111110')
-    if payload_end == -1:
-        raise ValueError("No hidden payload found")
-    return binary_payload[:payload_end]
+    binary_payload = []
+    data_flat = data.flatten()
+    
+    for i in range(data_flat.size):
+        bits = [int(b) for b in f'{data_flat[i] & ((1 << num_lsb) - 1):0{num_lsb}b}']
+        binary_payload.extend(bits)
+        if len(binary_payload) >= 16 and binary_payload[-16:] == [1]*16:
+            return ''.join(map(str, binary_payload[:-16]))
+    
+    raise ValueError("No hidden payload found")
 
 def encode_image(image_file, payload, num_lsb):
-    img = Image.open(image_file)
+    img = Image.open(image_file).convert('RGB')
     data = np.array(img)
-    shape = data.shape
-    encoded_data = encode_lsb(data.flatten(), payload, num_lsb)
-    encoded_img = Image.fromarray(encoded_data.reshape(shape))
+    encoded_data = encode_lsb(data, payload, num_lsb)
+    encoded_img = Image.fromarray(encoded_data.astype(np.uint8))
     return encoded_img
 
 def decode_image(image_file, num_lsb):
-    img = Image.open(image_file)
+    img = Image.open(image_file).convert('RGB')
     data = np.array(img)
     return decode_lsb(data, num_lsb)
+
 
 def encode_audio(audio_file, payload, num_lsb):
     try:
