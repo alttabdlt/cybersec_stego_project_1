@@ -2,7 +2,9 @@ import streamlit as st
 import io
 from PIL import Image
 import wave
-from stego import encode_text_in_image, decode_text_from_image
+import tempfile
+import os
+from stego import encode_text_in_image, decode_text_from_image, encode_text_in_audio, decode_text_from_audio
 
 def main():
     st.title("LSB Steganography Application")
@@ -10,7 +12,7 @@ def main():
     # Sidebar for the operation and file type
     with st.sidebar:
         operation = st.radio("Choose operation:", ("Encode", "Decode"))
-        file_type = st.radio("Choose Cover file type:", ("Image"))
+        file_type = st.radio("Choose Cover file type:", ("Image", "Audio"))
         num_lsb = st.slider("Number of LSBs to use:", 1, 8, 1)
 
     if operation == "Encode":
@@ -47,6 +49,17 @@ def main():
                     st.download_button("Download Stego Image", buf.getvalue(), "stego_image.png")
                 except ValueError as e:
                     st.error(str(e))
+
+            elif file_type == "Audio":
+                try:
+                    # Encode text into audio file
+                    stego_audio = encode_text_in_audio(uploaded_file, payload, num_lsb)
+                    # Display the download button for the stego audio file
+                    st.audio(uploaded_file, format="audio/wav")
+                    # Allow download of the modified (stego) audio file
+                    st.download_button("Download Stego Audio", stego_audio.getvalue(), "stego_audio.wav")
+                except ValueError as e:
+                    st.error(str(e))
             
 
     else:  # Decode
@@ -68,6 +81,13 @@ def main():
                         st.subheader("Stego File")
                         st.image(uploaded_file, caption="Decoded Stego Image", use_column_width=True)
                         
+                elif file_type == "Audio":
+                    # Decode text from audio
+                    hidden_text = decode_text_from_audio(uploaded_file, num_lsb)
+                    st.text_area("Hidden text:", hidden_text)
+
+                    # Play the uploaded stego audio file
+                    st.audio(uploaded_file, format="audio/wav")
             
             except ValueError as e:
                 st.error(str(e))
