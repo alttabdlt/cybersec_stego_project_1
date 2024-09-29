@@ -5,8 +5,9 @@ import wave
 import tempfile
 import os
 from stego import encode_text_in_image, decode_text_from_image, encode_text_in_audio, decode_text_from_audio, encode_random, decode_frame, get_frames, frames_to_video, decode_hidden_text
+from stego_for_image import encode_image_in_audio , decode_image_from_audio
 
-def main():
+def stego_payload_text_page():
     st.title("LSB Steganography Application")
 
     # Sidebar for the operation and file type
@@ -144,6 +145,63 @@ def main():
             
             except ValueError as e:
                 st.error(str(e))
+
+def stego_payload_image_page():
+    st.title("LSB Steganography Application")
+
+    # Sidebar for the operation and file type
+    with st.sidebar:
+        operation = st.radio("Choose operation:", ("Encode", "Decode"))
+        file_type = st.radio("Choose Cover file type:", ("Audio"))
+        num_lsb = st.slider("Number of LSBs to use:", 1, 8, 1)
+
+    if operation == "Encode":
+        uploaded_payload = st.file_uploader("Choose an image to hide", type=["jpg", "png", "bmp"], key="image")
+        uploaded_audio = st.file_uploader("Choose a cover file", type=["wav"], key="audio")
+
+        if uploaded_audio is not None and uploaded_payload:
+            if file_type == "Audio":
+                try:
+                    # Open the image and encode into the audio
+                    stego_audio_path, img_shape = encode_image_in_audio(uploaded_audio, uploaded_payload, num_lsb)
+                    
+                    # Display original audio and stego files side by side
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.subheader("Original File")
+                        st.audio(uploaded_audio)
+                    with col2:
+                        st.subheader("Stego Audio")
+                        st.audio(stego_audio_path)
+
+                    # Offer download option for the stego audio
+                    with open(stego_audio_path, "rb") as file:
+                        st.download_button("Download Stego Audio", file, "stego_audio.wav")
+                except ValueError as e:
+                    st.error(str(e))
+
+    else:  # Decode
+        uploaded_audio = st.file_uploader("Choose a stego audio file", type=["wav"])
+
+        if uploaded_audio is not None:
+            try:
+                if file_type == "Audio":
+                    # Decode image from the audio
+                    decoded_image = decode_image_from_audio(uploaded_audio, num_lsb)
+                    st.image(decoded_image, caption="Hidden Image")
+
+            except ValueError as e:
+                st.error(str(e))
+
+# Main function to manage the pages
+def main():
+    st.sidebar.title("Navigation")
+    page = st.sidebar.selectbox("Choose A Payload", ["For Text", "For Image"])
+
+    if page == "For Text":
+        stego_payload_text_page()
+    elif page == "For Image":
+        stego_payload_image_page()  # Call the main function from the second file
 
 if __name__ == "__main__":
     main()
