@@ -17,7 +17,7 @@ def stego_payload_text_page():
         num_lsb = st.slider("Number of LSBs to use:", 1, 8, 1)
 
     if operation == "Encode":
-        payload = st.text_area("Enter text to hide:")
+        payload = st.text_area("Enter text to hide:", height=300)
         uploaded_file = st.file_uploader("Choose a cover file", type=["jpg", "png", "bmp", "wav","mp4","avi"])
         if uploaded_file is not None and payload:
             if file_type == "Image":
@@ -98,21 +98,16 @@ def stego_payload_text_page():
                 if file_type == "Image":
                     # Decode text from image
                     hidden_text = decode_text_from_image(uploaded_file, num_lsb)
-                    st.text_area("Hidden text:", hidden_text)
+                    st.text_area("Hidden text:", hidden_text, height=300)
 
-                    # Display the uploaded stego image and original image
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.subheader("Original File")
-                        st.image(uploaded_file, caption="Uploaded Stego Image", use_column_width=True)
-                    with col2:
-                        st.subheader("Stego File")
-                        st.image(uploaded_file, caption="Decoded Stego Image", use_column_width=True)
+                    # Display the uploaded stego image 
+                    st.subheader("Stego File")
+                    st.image(uploaded_file, caption="Stego Image", use_column_width=True)
                         
                 elif file_type == "Audio":
                     # Decode text from audio
                     hidden_text = decode_text_from_audio(uploaded_file, num_lsb)
-                    st.text_area("Hidden text:", hidden_text)
+                    st.text_area("Hidden text:", hidden_text, height=300) 
 
                     # Play the uploaded stego audio file
                     st.audio(uploaded_file, format="audio/wav")
@@ -139,7 +134,7 @@ def stego_payload_text_page():
                         with open(decoded_text_file_path, "r") as decoded_file:
                             decoded_text = decoded_file.read()
 
-                        st.text_area("Hidden text:", decoded_text)
+                        st.text_area("Hidden text:", decoded_text, height=300)
                     except Exception as e:
                         st.error(f"An error occurred: {e}")
             
