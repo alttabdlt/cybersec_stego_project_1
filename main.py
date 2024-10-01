@@ -93,13 +93,21 @@ def encode_ui():
                         if not can_encode_result:
                             st.error(f"The payload is too large to encode with the selected number of LSBs.\nAvailable bits: {available_bits}\nRequired bits: {required_bits}")
                             return
-                        output_video_path = encode_video(cover_file, payload_bytes, num_lsb)
+                        output_video_path, original_hash = encode_video(cover_file, payload_bytes, num_lsb)
                         st.success("Payload encoded successfully into the cover video!")
 
-                        # Display the encoded video
-                        with open(output_video_path, 'rb') as f:
-                            video_bytes = f.read()
-                        st.video(video_bytes)
+                        # Display the original and encoded videos side by side
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.subheader("Original Video")
+                            st.video(cover_file)
+                        with col2:
+                            st.subheader("Stego Video")
+                            with open(output_video_path, 'rb') as f:
+                                video_bytes = f.read()
+                            st.video(video_bytes)
+
+                        # Provide download button for the stego video
                         st.download_button(
                             label="Download Stego Video",
                             data=video_bytes,
@@ -107,12 +115,14 @@ def encode_ui():
                             mime="video/mp4"
                         )
 
+                        # Display the original hash
+                        st.info(f"Original payload hash: {original_hash}")
+
                         # Clean up temporary files
                         os.remove(output_video_path)
                     else:
                         st.error("Please provide a payload to encode.")
                 else:
-                    # Handle other cover types if necessary
                     st.error("Currently, payload encoding into video cover files is only supported for the 'Video' cover type with 'Text' or 'Image' payloads.")
             else:
                 st.error("Please upload a cover file.")
@@ -140,7 +150,7 @@ def decode_ui():
     if stego_file:
         if st.button("Decode Payload"):
             try:
-                decoded_payload = advanced_decode(stego_file, num_lsb, payload_type)
+                decoded_payload, decoded_hash = advanced_decode(stego_file, num_lsb, payload_type)
                 st.success("Payload decoded successfully from the stego object!")
 
                 if payload_type == "Text" and isinstance(decoded_payload, str):
@@ -149,6 +159,18 @@ def decode_ui():
                     st.image(decoded_payload, caption="Decoded Image Payload")
                 else:
                     st.error("Decoded payload does not match the expected type.")
+
+                # Display the decoded hash
+                st.info(f"Decoded payload hash: {decoded_hash}")
+
+                # Add a text input for the original hash
+                original_hash = st.text_input("Enter the original payload hash for comparison:")
+
+                if original_hash:
+                    if original_hash == decoded_hash:
+                        st.success("The decoded payload matches the original payload.")
+                    else:
+                        st.error("The decoded payload does NOT match the original payload.")
 
             except Exception as e:
                 st.error(f"An error occurred during decoding: {str(e)}")

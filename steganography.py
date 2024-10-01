@@ -11,6 +11,7 @@ import cv2
 import struct
 from tqdm import tqdm
 import subprocess
+import hashlib
 
 def can_encode(cover_file, payload, num_lsb):
     try:
@@ -102,6 +103,9 @@ def encode_video(cover_file, payload_bytes, num_lsb):
         cover_file.seek(0)
         print("Starting encode_video...")
         print(f"Number of LSBs used: {num_lsb}")
+
+        # Calculate hash of the original payload
+        original_hash = hashlib.sha256(payload_bytes).hexdigest()
 
         # Save the input video to a temporary file
         with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_input_video:
@@ -235,7 +239,7 @@ def encode_video(cover_file, payload_bytes, num_lsb):
         os.remove(temp_input_video_path)
         print("Temporary files removed.")
 
-        return output_video_path
+        return output_video_path, original_hash
 
     except Exception as e:
         print(f"Error during encode_video: {e}")
@@ -372,7 +376,18 @@ def decode_video(stego_video_file, num_lsb):
             f.write(decoded_payload)
         print("Decoded payload saved to 'decoded_payload' file.")
 
-        return decoded_payload
+        # Reconstruct the image from the decoded payload
+        dimension_bytes = decoded_payload[:6]
+        height, width, channels = struct.unpack('>HHH', dimension_bytes)
+        
+        image_bytes = decoded_payload[6:]
+        image_array = np.frombuffer(image_bytes, dtype=np.uint8).reshape((height, width, channels))
+        decoded_image = Image.fromarray(image_array)
+
+        # Calculate hash of the decoded payload
+        decoded_hash = hashlib.sha256(decoded_payload).hexdigest()
+
+        return decoded_image, decoded_hash
 
     except Exception as e:
         print(f"Error during decode_video: {e}")
