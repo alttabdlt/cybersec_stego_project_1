@@ -1,6 +1,7 @@
 # cybersec_stego_project_1
 
 ## Encoding/Decoding Image (Payload) into Video (Cover)
+### Command to start Streamlit: streamlit run main.py --server.maxUploadSize 500
 
 To ensure compatibility between your current decoding function and encoding done by other software, the following requirements should be met:
 
