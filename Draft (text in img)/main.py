@@ -4,7 +4,7 @@ from PIL import Image
 import wave
 import tempfile
 import os
-from stego import encode_text_in_image, decode_text_from_image, encode_text_in_audio, decode_text_from_audio, encode_random, decode_frame, get_frames, frames_to_video, decode_hidden_text
+from stego import encode_text_in_image, decode_text_from_image, encode_text_in_audio, decode_text_from_audio, encode_random, decode_frame, get_frames, frames_to_video, decode_hidden_text, encode_text_in_image, decode_text_from_image, encode_text_in_audio, decode_text_from_audio, encode_random, decode_frame, get_frames, frames_to_video,decode_hidden_text, encode_image, decode_image, encode_audio, decode_audio, can_encode, text_to_binary, binary_to_text, file_to_binary, binary_to_file, visualize_audio, visualize_image, advanced_decode, encode_video, decode_video, encode_text, decode_text, visualize_video
 from stego_for_image import encode_image_in_audio , decode_image_from_audio
 
 def stego_payload_text_page():
@@ -147,24 +147,24 @@ def stego_payload_image_page():
     # Sidebar for the operation and file type
     with st.sidebar:
         operation = st.radio("Choose operation:", ("Encode", "Decode"))
-        file_type = st.radio("Choose Cover file type:", ("Audio"))
+        file_type = st.radio("Choose Cover file type:", ("Image", "Audio", "Video"))
         num_lsb = st.slider("Number of LSBs to use:", 1, 8, 1)
 
     if operation == "Encode":
         uploaded_payload = st.file_uploader("Choose an image to hide", type=["jpg", "png", "bmp"], key="image")
-        uploaded_audio = st.file_uploader("Choose a cover file", type=["wav"], key="audio")
+        uploaded_cover = st.file_uploader("Choose a cover file", type=["jpg", "png", "bmp", "wav","mp4","avi"])
 
-        if uploaded_audio is not None and uploaded_payload:
+        if uploaded_cover is not None and uploaded_payload is not None:
             if file_type == "Audio":
                 try:
                     # Open the image and encode into the audio
-                    stego_audio_path, img_shape = encode_image_in_audio(uploaded_audio, uploaded_payload, num_lsb)
+                    stego_audio_path, img_shape = encode_image_in_audio(uploaded_cover, uploaded_payload, num_lsb)
                     
                     # Display original audio and stego files side by side
                     col1, col2 = st.columns(2)
                     with col1:
                         st.subheader("Original File")
-                        st.audio(uploaded_audio)
+                        st.audio(uploaded_cover)
                     with col2:
                         st.subheader("Stego Audio")
                         st.audio(stego_audio_path)
@@ -174,16 +174,42 @@ def stego_payload_image_page():
                         st.download_button("Download Stego Audio", file, "stego_audio.wav")
                 except ValueError as e:
                     st.error(str(e))
+            elif file_type == "Image":
+                try:
+                    # Convert uploaded payload to binary
+                    payload_binary = file_to_binary(uploaded_payload)
+                    
+                    # Open the image and encode image
+                    stego_img = encode_image(uploaded_cover, payload_binary, num_lsb)
+                    
+                    # Display original and stego files side by side
+                    visualization = visualize_image(Image.open(uploaded_cover), stego_img)
+                    st.image(visualization, caption="Original vs Encoded Image vs Difference")
+        
+                    # Offer download option
+                    buf = io.BytesIO()
+                    stego_img.save(buf, format="PNG")
+                    st.download_button("Download Stego Image", buf.getvalue(), "stego_image.png")
+                except ValueError as e:
+                    st.error(str(e))
 
     else:  # Decode
-        uploaded_audio = st.file_uploader("Choose a stego audio file", type=["wav"])
+        uploaded_stego = st.file_uploader("Choose a stego file", type=["wav", "jpg", "png", "bmp"])
 
-        if uploaded_audio is not None:
+        if uploaded_stego is not None:
             try:
                 if file_type == "Audio":
                     # Decode image from the audio
-                    decoded_image = decode_image_from_audio(uploaded_audio, num_lsb)
+                    decoded_image = decode_image_from_audio(uploaded_stego, num_lsb)
                     st.image(decoded_image, caption="Hidden Image")
+                elif file_type == "Image":
+                    # Decode image from the image
+                    #decoded_payload = decode_image(uploaded_stego, num_lsb)
+                    #print(f"Num LSB: {num_lsb}")
+                    decoded_payload = advanced_decode(uploaded_stego, num_lsb, file_type)
+                    #decoded_image = binary_to_file(decoded_payload, "image")
+                    #st.image(decoded_image, caption="Hidden Image")
+                    st.image(decoded_payload, caption="Decoded Image Payload")
 
             except ValueError as e:
                 st.error(str(e))
