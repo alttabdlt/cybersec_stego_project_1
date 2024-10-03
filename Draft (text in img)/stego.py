@@ -186,12 +186,19 @@ def encode_random(filename, frame_loc):
     # Load text to hide
     try:
         with open(filename, "r") as fileinput:
+            print(filename)
             filedata = fileinput.read()
     except FileNotFoundError:
         print("\nFile to hide not found! Exiting...")
         quit()
 
     frame_count = len([f for f in os.listdir(frame_loc) if f.endswith(".png")])
+    
+    # Check if there are any frames available
+    if frame_count == 0:
+        print("No frames found in the directory! Exiting...")
+        return
+    
     total_frames = frame_count
 
     # Pick random start and end frames
@@ -226,17 +233,31 @@ def encode_random(filename, frame_loc):
 
     print("Complete!\n")
 
+# # Extract frames from the video
+# def get_frames(video_path, output_folder):
+#     video_clip = VideoFileClip(video_path)  # Load the video as a VideoFileClip
+#     directory = os.path.join(output_folder, 'frames')
+    
+#     if not os.path.isdir(directory):
+#         os.makedirs(directory)
+    
+#     for index, frame in enumerate(video_clip.iter_frames()):
+#         img = Image.fromarray(frame, 'RGB')
+#         img.save(f'{directory}/{index}.png')
+#         #print(directory)
+    
+#     print(f"Extracted {index + 1} frames")
+
 # Extract frames from the video
 def get_frames(video_path, output_folder):
     video_clip = VideoFileClip(video_path)  # Load the video as a VideoFileClip
-    directory = os.path.join(output_folder, 'frames')
-    
-    if not os.path.isdir(directory):
-        os.makedirs(directory)
+
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
     
     for index, frame in enumerate(video_clip.iter_frames()):
         img = Image.fromarray(frame, 'RGB')
-        img.save(f'{directory}/{index}.png')
+        img.save(f'{output_folder}/{index}.png')  # Save frames directly in output_folder
     
     print(f"Extracted {index + 1} frames")
 
@@ -283,6 +304,44 @@ def decode_frame(number, frame_location):
         if pixels[-1] % 2 != 0:  # End of message if last bit is odd
             return data
 
+# # Decoding text hidden in the video frames using the metadata (start and end frames)
+# def decode_hidden_text(frame_location, output_file):
+#     # Read the start and end frames from the metadata file
+#     metadata_path = os.path.join(frame_location, "frame_metadata.txt")
+    
+#     if not os.path.exists(metadata_path):
+#         raise FileNotFoundError(f"Metadata file not found at {metadata_path}")
+
+#     # Ensure the metadata file contains valid frame numbers (integers)
+#     with open(metadata_path, "r") as f:
+#         content = f.read().strip()  # Read the content and strip any extra whitespace or newline characters
+#         print(f"Metadata content: {content}")
+#         try:
+#             start, end, message_length = map(int, content.split(','))  # Convert the frame numbers and message length to integers
+#         except ValueError:
+#             raise ValueError(f"Invalid data in metadata file: {content}")
+    
+#     print(f"Extracting data from frames {start} to {end}, expecting {message_length} characters...")
+
+#     # Open the output file where decoded data will be stored
+#     with open(output_file, 'w') as decoded_text_file:
+#         decoded_text_file.write('Decoded Text:\n')
+#         total_decoded_text = ""
+
+#         for frame_num in range(start, end + 1):
+#             try:
+#                 decoded_text = decode_frame(frame_num, frame_location)  # Decode each frame
+#                 if decoded_text:
+#                     total_decoded_text += decoded_text
+#                     print(f"Data found in Frame {frame_num}")
+#             except StopIteration:
+#                 print(f"No data found in Frame {frame_num}")
+#         # Limit the decoded text to the first `message_length` characters
+#         decoded_text_file.write(total_decoded_text[:message_length])
+#         print(f"Decoded message: {total_decoded_text[:message_length]}")
+    
+#     print("\nExtraction Complete!")
+    
 # Decoding text hidden in the video frames using the metadata (start and end frames)
 def decode_hidden_text(frame_location, output_file):
     # Read the start and end frames from the metadata file
@@ -291,12 +350,12 @@ def decode_hidden_text(frame_location, output_file):
     if not os.path.exists(metadata_path):
         raise FileNotFoundError(f"Metadata file not found at {metadata_path}")
 
-    # Ensure the metadata file contains valid frame numbers (integers)
+    # Ensure the metadata file contains valid frame numbers and message length
     with open(metadata_path, "r") as f:
-        content = f.read().strip()  # Read the content and strip any extra whitespace or newline characters
+        content = f.read().strip()
         print(f"Metadata content: {content}")
         try:
-            start, end, message_length = map(int, content.split(','))  # Convert the frame numbers and message length to integers
+            start, end, message_length = map(int, content.split(','))  # Convert frame numbers and message length
         except ValueError:
             raise ValueError(f"Invalid data in metadata file: {content}")
     
@@ -315,11 +374,14 @@ def decode_hidden_text(frame_location, output_file):
                     print(f"Data found in Frame {frame_num}")
             except StopIteration:
                 print(f"No data found in Frame {frame_num}")
+
         # Limit the decoded text to the first `message_length` characters
-        decoded_text_file.write(total_decoded_text[:message_length])
-        print(f"Decoded message: {total_decoded_text[:message_length]}")
+        total_decoded_text = total_decoded_text[:message_length]  # Trim to message length
+        decoded_text_file.write(total_decoded_text)
+        print(f"Decoded message: {total_decoded_text}")
     
     print("\nExtraction Complete!")
+
 
 def text_to_binary(text):
     return ''.join(format(ord(char), '08b') for char in text)
@@ -402,14 +464,14 @@ def decode_image(image_file, num_lsb):
 
 
 # Helper function to convert image to binary string
-# def image_to_binary(image_file):
-#     img = Image.open(image_file)
-#     bio = io.BytesIO()
-#     img.save(bio, format="PNG")
-#     return ''.join(format(byte, '08b') for byte in bio.getvalue())
+def image_to_binary(image_file):
+    img = Image.open(image_file)
+    bio = io.BytesIO()
+    img.save(bio, format="PNG")
+    return ''.join(format(byte, '08b') for byte in bio.getvalue())
 
-# # Helper function to convert binary string back to image
-# def binary_to_image(binary_string):
+# Helper function to convert binary string back to image
+def binary_to_image(binary_string):
     binary_data = int(binary_string, 2).to_bytes((len(binary_string) + 7) // 8, byteorder='big')
     return Image.open(io.BytesIO(binary_data))
 

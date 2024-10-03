@@ -4,6 +4,7 @@ from PIL import Image
 import wave
 import tempfile
 import os
+import stat
 from stego import encode_text_in_image, decode_text_from_image, encode_text_in_audio, decode_text_from_audio, encode_random, decode_frame, get_frames, frames_to_video, decode_hidden_text, encode_text_in_image, decode_text_from_image, encode_text_in_audio, decode_text_from_audio, encode_random, decode_frame, get_frames, frames_to_video,decode_hidden_text, encode_image, decode_image, encode_audio, decode_audio, can_encode, text_to_binary, binary_to_text, file_to_binary, binary_to_file, visualize_audio, visualize_image, advanced_decode, encode_video, decode_video, encode_text, decode_text, visualize_video
 from stego_for_image import encode_image_in_audio , decode_image_from_audio
 
@@ -70,7 +71,16 @@ def stego_payload_text_page():
 
                     # Extract frames, encode text into random frames, and reassemble video
                     frame_folder = os.path.join(tempfile.gettempdir(), "frames")
+                    print(tempfile.gettempdir())
+                    # Create the directory if it doesn't exist
+                    if not os.path.exists(frame_folder):
+                        os.makedirs(frame_folder)
+
+                    # Change the folder permissions to allow read, write, and execute for everyone
+                    os.chmod(frame_folder, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
                     get_frames(input_video_path, frame_folder)
+                    print(f"Files in {frame_folder}:")
+                    print(os.listdir(frame_folder))
                     encode_random(text_file_path, frame_folder)
                     frames_to_video(frame_folder, output_video_path, fps=30)
 
