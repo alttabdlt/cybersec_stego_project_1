@@ -400,15 +400,16 @@ def decode_image(image_file, num_lsb):
     data = np.array(img)
     return decode_lsb(data, num_lsb)
 
-# Helper function to convert image to binary string
-def image_to_binary(image_file):
-    img = Image.open(image_file)
-    bio = io.BytesIO()
-    img.save(bio, format="PNG")
-    return ''.join(format(byte, '08b') for byte in bio.getvalue())
 
-# Helper function to convert binary string back to image
-def binary_to_image(binary_string):
+# Helper function to convert image to binary string
+# def image_to_binary(image_file):
+#     img = Image.open(image_file)
+#     bio = io.BytesIO()
+#     img.save(bio, format="PNG")
+#     return ''.join(format(byte, '08b') for byte in bio.getvalue())
+
+# # Helper function to convert binary string back to image
+# def binary_to_image(binary_string):
     binary_data = int(binary_string, 2).to_bytes((len(binary_string) + 7) // 8, byteorder='big')
     return Image.open(io.BytesIO(binary_data))
 
